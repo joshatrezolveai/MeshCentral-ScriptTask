@@ -146,7 +146,6 @@ function finalizeJob(job, retVal, errVal) {
 }
 //@TODO Test powershell on *nix devices with and without powershell installed
 function runPowerShell(sObj, jObj) {
-    if (process.platform != 'win32') return runPowerShellNonWin(sObj, jObj);
     const fs = require('fs');
     var rand =  Math.random().toString(32).replace('0.', '');
     
