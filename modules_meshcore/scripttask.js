@@ -146,37 +146,40 @@ function finalizeJob(job, retVal, errVal) {
 }
 //@TODO Test powershell on *nix devices with and without powershell installed
 function runPowerShell(sObj, jObj) {
-    if (process.platform != 'win32') return runPowerShellNonWin(sObj, jObj);
     const fs = require('fs');
     var rand =  Math.random().toString(32).replace('0.', '');
-    
+	
     var oName = 'st' + rand + '.txt';
     var pName = 'st' + rand + '.ps1';
-    var pwshout = '', pwsherr = '', cancontinue = false;
+	
     try {
         fs.writeFileSync(pName, sObj.content);
         var outstr = '', errstr = '';
-        var child = require('child_process').execFile(process.env['windir'] + '\\system32\\WindowsPowerShell\\v1.0\\powershell.exe', ['-NoLogo'] );
+        var child = require('child_process').execFile(process.env['windir'] + '\\system32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-NoProfile', '-NoLogo'] );
         child.stderr.on('data', function (chunk) { errstr += chunk; });
         child.stdout.on('data', function (chunk) { });
         runningJobPIDs[jObj.jobId] = child.pid;
         child.stdin.write('.\\' + pName + ' | Out-File ' + oName + ' -Encoding UTF8\r\n');
+		child.stdin.write('exit\r\n');
+
         child.on('exit', function(procRetVal, procRetSignal) {
-            dbg('Exiting with '+procRetVal + ', Signal: ' + procRetSignal); 
+
             if (errstr != '') {
-                finalizeJob(jObj, null, errstr);
+
                 try { 
                     fs.unlinkSync(oName);
                     fs.unlinkSync(pName);
                 } catch (e) { dbg('Could not unlink files, error was: ' + e); }
+				finalizeJob(jObj, null, errstr);								
                 return;
             }
             if (procRetVal == 1) {
-                finalizeJob(jObj, null, 'Process terminated unexpectedly.');
+                
                 try { 
                     fs.unlinkSync(oName);
                     fs.unlinkSync(pName);
                 } catch (e) { dbg('Could not unlink files, error was: ' + e); }
+				finalizeJob(jObj, null, 'Process terminated unexpectedly.');															
                 return;
             }
             try { 
@@ -189,14 +192,15 @@ function runPowerShell(sObj, jObj) {
                 outstr = (procRetVal) ? 'Failure' : 'Success';
             }
             dbg('Output is: ' + outstr);
-            finalizeJob(jObj, outstr);
+            
             try { 
                 fs.unlinkSync(oName);
                 fs.unlinkSync(pName);
             } catch (e) { }
+			finalizeJob(jObj, outstr);						  
         });
-        child.stdin.write('exit\r\n');
-        //child.waitExit(); // this was causing the event loop to stall on long-running scripts, switched to '.on exit'
+
+
 
     } catch (e) { 
         dbg('Error block was (PowerShell): ' + e);
