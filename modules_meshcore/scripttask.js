@@ -57,12 +57,12 @@ function consoleaction(args, rights, sessionid, parent) {
                 scriptHash: args.scriptHash,
                 dispatchTime: args.dispatchTime
             };
-            //dbg('jObj args is ' + JSON.stringify(jObj));
+            dbg('jObj args is ' + JSON.stringify(jObj));
             var sObj = getScriptFromCache(jObj.scriptId);
-            //dbg('sobj = ' + JSON.stringify(sObj) + ', shash = ' + jObj.scriptHash);
+            dbg('sobj = ' + JSON.stringify(sObj) + ', shash = ' + jObj.scriptHash);
             if (sObj == null || sObj.contentHash != jObj.scriptHash) {
                 // get from the server, then run
-                //dbg('Getting and caching script '+ jObj.scriptId);
+                dbg('Getting and caching script '+ jObj.scriptId);
                 mesh.SendCommand({ 
                     "action": "plugin", 
                     "plugin": "scripttask",
@@ -146,17 +146,23 @@ function finalizeJob(job, retVal, errVal) {
 }
 //@TODO Test powershell on *nix devices with and without powershell installed
 function runPowerShell(sObj, jObj) {
-    const fs = require('fs');
+    dbg('Running Powershell Job');
+	const fs = require('fs');
     var rand =  Math.random().toString(32).replace('0.', '');
+	dbg('Setting variable rand: ' + rand);
     var oName = 'st' + rand + '.txt';
+	dbg('Setting variable oName: ' + oName);
     var pName = 'st' + rand + '.ps1';
+	dbg('Setting variable pName: ' + pName);
     try {
         fs.writeFileSync(pName, sObj.content);
         var outstr = '', errstr = '';
         var child = require('child_process').execFile(process.env['windir'] + '\\system32\\WindowsPowerShell\\v1.0\\powershell.exe', ['powershell', '-NoLogo'] );
-        child.stderr.on('data', function (chunk) { errstr += chunk; });
+        dbg('Setting variable child: ' + child);
+		child.stderr.on('data', function (chunk) { errstr += chunk; });
         child.stdout.on('data', function (chunk) { });
         runningJobPIDs[jObj.jobId] = child.pid;
+		dbg('Setting variable child.pid: ' + child.pid);
         child.stdin.write('.\\' + pName + ' | Out-File ' + oName + ' -Encoding UTF8\r\n');
 		child.stdin.write('exit\r\n');
         child.on('exit', function(procRetVal, procRetSignal) {
@@ -348,7 +354,7 @@ function runBash(sObj, jObj) {
         finalizeJob(jObj, null, 'Platform not supported.');
         return;
     }
-    //dbg('proc is ' + JSON.stringify(process));
+    dbg('proc is ' + JSON.stringify(process));
     const fs = require('fs');
     var path = '';
     var pathTests = [
@@ -437,8 +443,8 @@ function runScript(sObj, jObj) {
                         dbg('Found job with no process. Removing running status.');
                         delete runningJobPIDs[jobId];
                         runningJobs.remove(runningJobs.indexOf(idx));
-                        //dbg('RunningJobs: ' + JSON.stringify(runningJobs));
-                        //dbg('RunningJobsPIDs: ' + JSON.stringify(runningJobPIDs));
+                        dbg('RunningJobs: ' + JSON.stringify(runningJobs));
+                        dbg('RunningJobsPIDs: ' + JSON.stringify(runningJobPIDs));
                     }
                 });
             }
